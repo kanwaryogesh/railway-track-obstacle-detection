@@ -7,14 +7,12 @@ from datetime import datetime
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "static/uploads"
-RESULTS_FOLDER = "static/results"
+RUNS_FOLDER = "static/runs"
 
-# Ensure folders exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(RESULTS_FOLDER, exist_ok=True)
 
-# Load YOLO model (use best.pt if you have it)
-model = YOLO("best.pt")  # change to yolov8n.pt ONLY if best.pt not available
+# Load YOLO model
+model = YOLO("yolov8n.pt")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -23,13 +21,13 @@ def index():
     if request.method == "POST":
         file = request.files.get("image")
 
+        # If no file selected
         if not file or file.filename == "":
             return render_template("index.html", result_image=None)
 
-        # 🔥 Clear old detection results safely
-        detect_path = os.path.join(RESULTS_FOLDER, "detect")
-        if os.path.exists(detect_path):
-            shutil.rmtree(detect_path)
+        # Remove old detection results
+        if os.path.exists(RUNS_FOLDER):
+            shutil.rmtree(RUNS_FOLDER)
 
         # Save uploaded image
         ext = os.path.splitext(file.filename)[1]
@@ -41,19 +39,20 @@ def index():
         model.predict(
             source=input_path,
             save=True,
-            project=RESULTS_FOLDER,
+            project=RUNS_FOLDER,
             name="detect"
         )
 
-        # Get detected image safely
-        if os.path.exists(detect_path):
-            files = os.listdir(detect_path)
-            if len(files) > 0:
-                detected_file = files[0]
-                result_image = f"results/detect/{detected_file}"
+        detect_folder = os.path.join(RUNS_FOLDER, "detect")
+
+        # Safety check (VERY IMPORTANT)
+        if os.path.exists(detect_folder) and os.listdir(detect_folder):
+            detected_file = os.listdir(detect_folder)[0]
+            result_image = f"runs/detect/{detected_file}"
 
     return render_template("index.html", result_image=result_image)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(debug=False)
+
+
