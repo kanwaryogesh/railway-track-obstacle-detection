@@ -1,7 +1,8 @@
 flask
 ultralytics
-opencv-python
-numpy
+torch
+opencv-python-headless
 gunicorn
+
 
 
